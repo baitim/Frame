@@ -6,7 +6,7 @@
 
 ## How to use
 
-<p align="center"><img src="https://github.com/baitim/Frame/blob/main/images/Example.png" width="90%"></p>
+<p align="center"><img src="https://github.com/baitim/Frame/blob/main/images/Example.png" width="160%"></p>
 
 ## Feats
 
