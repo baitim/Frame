@@ -10,17 +10,9 @@
 
 ## Feats
 
-* can change size(x, y) <code>20 5</code>
-
-* can change position(x0, y0) <code>10 8</code>
-
-* can change type(1, 2, 3) <code>1</code>
-
-* can change color <code>4eh</code>
-
-* can change author <code>baitim</code>
-
-* can change text <code>sus</code>
+* can show  frame with continuously updated registers.   <code>1</code>
+* can show  frame with permanent registers.              <code>2</code>
+* can close frame.                                       <code>3</code>
 
 ## Support
 **This project is created by [bai_tim](https://github.com/bai_tim)**
