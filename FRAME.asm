@@ -12,7 +12,6 @@ Start:
 
             call Exit
 
-videomem db 25 * 80 * 2 dup(0)
 activate db 0
 x       dw 10
 y       dw 7
@@ -20,10 +19,11 @@ x0      dw 10
 y0      dw 5
 color       db 4eh
 type_sym    dw 1
+videomem db 12 * 9 * 2 dup(0)
 
-set1: db 'ÉÍ»º ºÈÍ¼'
-set2: db 'ÅÄÅ³ ³ÅÄÅ'
-set3: db '/Ä\³ ³\_/'
+set1: db 'ï¿½Í»ï¿½ ï¿½ï¿½Í¼'
+set2: db 'ï¿½ï¿½Å³ ï¿½ï¿½ï¿½ï¿½'
+set3: db '/ï¿½\ï¿½ ï¿½\_/'
 regs: db 'AXBXCXDXSIDI'
 
 ;---------------------------------------------
@@ -40,7 +40,6 @@ Exit    proc
         inc dx
         int 21h
     
-        ret
 endp
 
 ;---------------------------------------------
@@ -50,6 +49,7 @@ endp
 ; Destr:    
 ;---------------------------------------------
 SaveVideoMem    proc 
+        push ax
         push cx
         push ds
         push es
@@ -61,16 +61,64 @@ SaveVideoMem    proc
         pop es
         push 0b800h
         pop ds
-        mov si, 0
-        mov cx, 25 * 80 * 2
-        rep movsb
+
+        mov ax, 2
+        @@Next:
+            push di
+            call SetPosition
+            mov si, di
+            pop di
+            mov cx, 12 * 2
+            rep movsb
+        inc ax
+        cmp ax, 11
+        jb @@Next
 
         pop di
         pop si
         pop es
         pop ds
         pop cx
+        pop ax
         ret
+endp
+
+;---------------------------------------------
+; clear video memory
+; Entry:    x & y - width & height of frame
+;           x0 & y0 - left & upper x and y of frame
+; Assumes:  ES
+;           videomem (saved video memory)
+; Destr:    
+;---------------------------------------------
+ClearWindow  proc
+            push cx
+            push ds
+            push es
+            push si
+            push di
+
+            push cs
+            pop ds
+            push 0b800h
+            pop es
+            mov si, offset videomem
+
+            xor ax, ax
+            @@Next:
+                call SetPosition
+                mov cx, 12 * 2
+                rep movsb
+            inc ax
+            cmp ax, 8
+            jb @@Next
+
+            pop di
+            pop si
+            pop es
+            pop ds
+            pop cx
+            ret
 endp
 
 ;---------------------------------------------
@@ -120,20 +168,20 @@ New09   proc
 
         in al, 60h
 
-        cmp al, 02h
+        cmp al, 02h ; '1'
         jne @@Next1
         mov cs:activate, 01h
         jmp @@Exit
 
         @@Next1:
-        cmp al, 03h
+        cmp al, 03h ; '2'
         jne @@Next2
         mov cs:activate, 00h
         call PrintFilledFrame
         jmp @@Exit
 
         @@Next2:
-        cmp al, 04h
+        cmp al, 04h ; '3'
         jne @@Exit
         mov cs:activate, 00h
         call ClearWindow
@@ -191,20 +239,13 @@ endp
 ; Destr:    
 ;---------------------------------------------
 New08   proc 
-        push ax
-        push bx
-        push es
-        push ds
-
+        
         cmp cs:activate, 01h
         jne @@Exit
-        call PrintFilledFrame
 
+        call PrintFilledFrame
+        
         @@Exit:
-        pop ds
-        pop es
-        pop bx
-        pop ax
 
         db 0EAh
 old08Ofs dw 0
@@ -220,12 +261,13 @@ endp
 ; Destr:    
 ;---------------------------------------------
 PrintFilledFrame   proc 
-            push bx
             push es
             push ds
+            push bx
             
             mov bx, 0b800h
             mov es, bx
+            pop bx
             push cs
             pop ds
             call PrintFrame
@@ -233,39 +275,6 @@ PrintFilledFrame   proc
 
             pop ds
             pop es
-            pop bx
-            ret
-endp
-
-;---------------------------------------------
-; clear video memory
-; Entry:    x & y - width & height of frame
-;           x0 & y0 - left & upper x and y of frame
-; Assumes:  ES
-;           videomem (saved video memory)
-; Destr:    
-;---------------------------------------------
-ClearWindow  proc
-            push cx
-            push ds
-            push es
-            push si
-            push di
-
-            push cs
-            pop ds
-            push 0b800h
-            pop es
-            mov di, 0
-            mov si, offset videomem
-            mov cx, 25 * 80 * 2
-            rep movsb
-
-            pop di
-            pop si
-            pop es
-            pop ds
-            pop cx
             ret
 endp
 
@@ -279,12 +288,12 @@ endp
 ;---------------------------------------------
 PrintRegisters  proc
             push bp
-            push ax
-            push bx
-            push cx
-            push dx
-			push si
             push di
+			push si
+            push dx
+            push cx
+            push bx
+            push ax
 
             mov bp, sp
 			mov si, offset cs:regs
@@ -298,12 +307,12 @@ PrintRegisters  proc
             cmp ax, y
             jb @@Next
 
-            pop di
-			pop si
-            pop dx
-            pop cx
-            pop bx
             pop ax
+            pop bx
+            pop cx
+            pop dx
+			pop si
+            pop di
             pop bp
             ret
 endp
@@ -410,6 +419,7 @@ endp
 ;           x0 & y0 - left & upper x and y of frame
 ;           type_sym - type of output symbols
 ;           DL - color of output
+;           SI - index in ds
 ; Assumes:  ES
 ; Destr:    
 ;---------------------------------------------
@@ -538,6 +548,8 @@ PUTBX       proc
             pop bx
             ret
 endp
+
+; TODO hexchar db '0123456789ABCDEF'
 
 ;---------------------------------------------
 ; print register ah to video memory
